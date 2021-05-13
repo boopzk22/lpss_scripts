@@ -1,2 +1,2 @@
 # lpss_scripts
-my scripts save
+See you again~
