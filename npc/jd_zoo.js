@@ -9,7 +9,7 @@ PK互助：内部账号自行互助(排名靠前账号得到的机会多),多余
 地图任务：已添加，下午2点到5点执行,抽奖已添加(基本都是优惠券)
 金融APP任务：已完成
 活动时间：2021-05-24至2021-06-20
-脚本更新时间：2021-05-28 9:20
+脚本更新时间：2021-05-30 21:25
 脚本兼容: QuantumultX, Surge, Loon, JSBox, Node.js
 ===================quantumultx================
 [task_local]
@@ -38,10 +38,6 @@ $.inviteList = [];
 $.pkInviteList = [];
 $.secretpInfo = {};
 $.innerPkInviteList = [
-  'sSKNX-MpqKOJsNu-ncncBYXfP6MvTT5m4xZUP4ajAFOjgkQASQMgshepSA7bSxc',
-  'sSKNX-MpqKOJsNu-ncncBYXfP6MvTT5m4xZUP4ajAAe-CfK5s_qfv5R6eLytNA',
-  'sSKNX-MpqKOJsNu-ncncBYXfP6MvTT5m4xZUP4ajAFOlg0gESwQkskPwTljbSxc',
-  'sSKNX-MpqKOJsNu-ncncBYXfP6MvTT5m4xZUP4ajAFOhhBAJTFUmvROrHFzbSxc',
 ];
 if ($.isNode()) {
   Object.keys(jdCookieNode).forEach((item) => {
@@ -66,7 +62,7 @@ if ($.isNode()) {
       '地图任务：已添加，下午2点到5点执行,抽奖已添加\n' +
       '金融APP任务：已完成\n' +
       '活动时间：2021-05-24至2021-06-20\n' +
-      '脚本更新时间：2021-05-28 9:20\n' +
+      '脚本更新时间：2021-05-30 21:25\n' +
       '火爆账户暂时不做任务，找到解决办法后再做任务'
       );
   for (let i = 0; i < cookiesArr.length; i++) {
@@ -87,16 +83,19 @@ if ($.isNode()) {
         }
         continue
       }
-      await zoo()
+      await zoo();
+      if($.hotFlag)$.secretpInfo[$.UserName] = false;//火爆账号不执行助力
     }
   }
-  let res = [], res2 = [];
+  let res = [], res2 = [], res3 = [];
+  res3 = await getAuthorShareCode('https://raw.githubusercontent.com/forpw2009/my_scripts/main/js_code/jd/jd_zoo.json');
+  if (!res3) await getAuthorShareCode('https://raw.githubusercontent.com/forpw2009/my_scripts/main/js_code/jd/jd_zoo.json')
   if (new Date().getUTCHours() + 8 >= 17) {
     res = await getAuthorShareCode() || [];
-    res2 = await getAuthorShareCode('http://cdn.trueorfalse.top/e528ffae31d5407aac83b8c37a4c86bc/') || [];
+    res2 = await getAuthorShareCode('https://raw.githubusercontent.com/forpw2009/my_scripts/main/js_code/jd/jd_zoo.json') || [];
   }
   if (pKHelpAuthorFlag) {
-    $.innerPkInviteList = getRandomArrayElements([...$.innerPkInviteList, ...res, ...res2], [...$.innerPkInviteList, ...res, ...res2].length);
+    $.innerPkInviteList = getRandomArrayElements([...$.innerPkInviteList, ...res, ...res2, ...res3], [...$.innerPkInviteList, ...res, ...res2, ...res3].length);
     $.pkInviteList.push(...$.innerPkInviteList);
   }
   for (let i = 0; i < cookiesArr.length; i++) {
@@ -116,6 +115,7 @@ if ($.isNode()) {
         console.log(`${$.UserName} 去助力PK码 ${$.pkInviteList[i]}`);
         $.pkInviteId = $.pkInviteList[i];
         await takePostRequest('pkHelp');
+        await $.wait(2000);
       }
       $.canHelp = true;
     }
@@ -207,7 +207,6 @@ async function zoo() {
             await $.wait(3000);
           }
         }
-        await takePostRequest('zoo_getHomeData');
       }else if ($.oneTask.taskType === 2 && $.oneTask.status === 1){
         console.log(`做任务：${$.oneTask.taskName};等待完成 (实际不会添加到购物车)`);
         $.taskId = $.oneTask.taskId;
@@ -225,14 +224,15 @@ async function zoo() {
           await $.wait(1500);
           needTime --;
         }
-        await takePostRequest('zoo_getHomeData');
       }
-      let raiseInfo = $.homeData.result.homeMainInfo.raiseInfo;
-      if (Number(raiseInfo.totalScore) > Number(raiseInfo.nextLevelScore) && raiseInfo.buttonStatus === 1) {
-        console.log(`满足升级条件，去升级`);
-        await $.wait(1000);
-        await takePostRequest('zoo_raise');
-      }
+    }
+    await $.wait(1000);
+    await takePostRequest('zoo_getHomeData');
+    raiseInfo = $.homeData.result.homeMainInfo.raiseInfo;
+    if (Number(raiseInfo.totalScore) > Number(raiseInfo.nextLevelScore) && raiseInfo.buttonStatus === 1) {
+      console.log(`满足升级条件，去升级`);
+      await $.wait(1000);
+      await takePostRequest('zoo_raise');
     }
     //===================================图鉴里的店铺====================================================================
     if (new Date().getUTCHours() + 8 >= 17 && new Date().getUTCHours() + 8 <= 18 && !$.hotFlag) {//分享
@@ -563,6 +563,7 @@ async function dealReturn(type, data) {
       }
       if(data.code === 0 && data.data && data.data.bizCode === -1002){
         $.hotFlag = true;
+        console.log(`该账户脚本执行任务火爆，暂停执行任务，请手动做任务或者等待解决脚本火爆问题`)
       }
       break;
     case 'zoo_getTaskDetail':
@@ -859,9 +860,26 @@ function getRandomArrayElements(arr, count) {
 }
 function getAuthorShareCode(url = "http://cdn.annnibb.me/eb6fdc36b281b7d5eabf33396c2683a2.json") {
   return new Promise(async resolve => {
-    $.get({url,headers:{
+    const options = {
+      "url": `${url}?${new Date()}`,
+      "timeout": 10000,
+      "headers": {
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1 Edg/87.0.4280.88"
-      }, "timeout": 10000}, async (err, resp, data) => {
+      }
+    };
+    if ($.isNode() && process.env.TG_PROXY_HOST && process.env.TG_PROXY_PORT) {
+      const tunnel = require("tunnel");
+      const agent = {
+        https: tunnel.httpsOverHttp({
+          proxy: {
+            host: process.env.TG_PROXY_HOST,
+            port: process.env.TG_PROXY_PORT * 1
+          }
+        })
+      }
+      Object.assign(options, { agent })
+    }
+    $.get(options, async (err, resp, data) => {
       try {
         if (err) {
         } else {
